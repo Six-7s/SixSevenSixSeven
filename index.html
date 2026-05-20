@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Квадратная картинка со звуком</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* небольшая мелочь: не выделяется картинка */
+        }
+
+        body {
+            background: #000;          /* чёрный фон, чтобы картинка выделялась */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;           /* показывает, что клик активен */
+        }
+
+        /* картинка — квадрат, сохраняем пропорции, центрируем */
+        img {
+            display: block;
+            max-width: 90vw;
+            max-height: 90vh;
+            width: auto;
+            height: auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            border-radius: 8px;        /* просто лёгкое скругление (опционально) */
+            /* ключевое: сама картинка должна быть 1:1 (квадратная) */
+        }
+
+        /* на случай очень маленьких экранов — немного отступов */
+        @media (max-width: 480px) {
+            img {
+                max-width: 95vw;
+                max-height: 95vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Только картинка. Никакого текста, кнопок или лишних элементов -->
+    <img src="image.png" alt="Квадратное изображение">
+
+    <script>
+        (function() {
+            // ---- НАСТРОЙКИ (пути к файлам) ----
+            const AUDIO_SRC = "sound.mp3";   // твой звуковой файл
+            
+            // ---- СОЗДАЁМ АУДИО ----
+            const audio = new Audio(AUDIO_SRC);
+            audio.preload = "auto";           // загружаем звук заранее
+            audio.loop = false;               // не зацикливаем (один раз)
+            
+            // ---- ФЛАГ ДЛЯ ПЕРВОГО КЛИКА ----
+            let hasFirstClickHappened = false;
+            
+            // ---- ПЫТАЕМСЯ ЗАПУСТИТЬ ЗВУК СРАЗУ (на случай, если браузер разрешит) ----
+            // Это дополнительная попытка — многие браузеры всё равно заблокируют,
+            // но если вдруг среда позволяет — звук начнётся без клика.
+            // Если блокируется — ничего страшного, сработает при первом клике.
+            audio.play().catch(e => {
+                // тихо игнорируем ошибку автовоспроизведения
+                console.log("Автовоспроизведение заблокировано, звук запустится");
+            });
+            
+            // ---- ФУНКЦИЯ ЗАПУСКА ПОЛНОГО ЭКРАНА ----
+            function enterFullscreen() {
+                const docEl = document.documentElement;
+                const requestMethod = docEl.requestFullscreen ||
+                                      docEl.webkitRequestFullscreen ||
+                                      docEl.msRequestFullscreen;
+                if (requestMethod) {
+                    requestMethod.call(docEl).catch(err => {
+                        console.warn("Не удалось открыть полный экран:", err);
+                    });
+                } else {
+                    console.warn("Fullscreen API не поддерживается");
+                }
+            }
+            
+            // ---- ФУНКЦИЯ ЗАПУСКА ЗВУКА (безопасно) ----
+            function playAudio() {
+                if (!audio.paused) return; // уже играет
+                audio.play().catch(e => {
+                    console.warn("Ошибка воспроизведения звука:", e);
+                });
+            }
+            
+            // ---- ГЛАВНЫЙ ОБРАБОТЧИК ПЕРВОГО КЛИКА ----
+            function onFirstClick() {
+                if (hasFirstClickHappened) return;
+                
+                hasFirstClickHappened = true;
+                
+                // 1. Открываем полноэкранный режим
+                enterFullscreen();
+                
+                // 2. Запускаем звук (даже если он уже запустился при загрузке — проверка внутри playAudio)
+                playAudio();
+                
+                // Небольшая задержка для удаления обработчика, но он сам удалится после первого срабатывания
+                document.removeEventListener("click", onFirstClick);
+                document.removeEventListener("touchstart", onFirstClick); // для мобильных
+            }
+            
+            // Вешаем обработчики на клик и тач (чтобы на мобильных тоже работало)
+            document.addEventListener("click", onFirstClick);
+            document.addEventListener("touchstart", onFirstClick);
+            
+            // На случай, если пользователь каким-то образом кликнул ДО монтирования обработчика — страхуем
+            // но это маловероятно, всё ок.
+        })();
+    </script>
+</body>
+</html>
